@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,14 +12,20 @@ import Calendar from "@/pages/Calendar";
 import Training from "@/pages/Training";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
+import SSOLogs from "@/pages/SSOLogs";
 import { OnboardingForm } from "@/components/OnboardingForm";
 import Auth from "@/pages/Auth";
 
 const queryClient = new QueryClient();
 
-// Protected route wrapper
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { session, loading } = useAuth();
+const ProtectedRoute = ({ 
+  children, 
+  requiredRoles 
+}: { 
+  children: React.ReactNode;
+  requiredRoles?: string[];
+}) => {
+  const { session, loading, user } = useAuth();
   
   if (loading) {
     return <div className="flex min-h-screen items-center justify-center">Chargement...</div>;
@@ -28,6 +33,13 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   
   if (!session) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (requiredRoles) {
+    const hasRequiredRole = user?.role && requiredRoles.includes(user.role);
+    if (!hasRequiredRole) {
+      return <Navigate to="/" replace />;
+    }
   }
 
   return <>{children}</>;
@@ -59,6 +71,14 @@ const AppRoutes = () => {
                 <Route path="/calendar" element={<Calendar />} />
                 <Route path="/training" element={<Training />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route 
+                  path="/sso-logs" 
+                  element={
+                    <ProtectedRoute requiredRoles={['admin', 'itr_manager']}>
+                      <SSOLogs />
+                    </ProtectedRoute>
+                  } 
+                />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </main>

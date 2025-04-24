@@ -1,219 +1,101 @@
-
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { Link } from "react-router-dom";
+import { DashboardIcon } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
+import { Users } from "lucide-react";
+import { GraduationCap } from "lucide-react";
+import { User } from "lucide-react";
+import { LogOut } from "lucide-react";
+import { Settings } from "lucide-react";
+import { Shield } from "lucide-react";
+import { useAuth } from "@/providers/AuthProvider";
 import {
-  Calendar,
-  LayoutDashboard,
-  FileStack,
-  GraduationCap,
-  Users,
-  Settings,
-  Menu,
-  X,
-} from 'lucide-react';
-
-interface SidebarItemProps {
-  icon: React.ElementType;
-  label: string;
-  to: string;
-  isActive: boolean;
-  onClick?: () => void;
-}
-
-const SidebarItem = ({ icon: Icon, label, to, isActive, onClick }: SidebarItemProps) => {
-  return (
-    <Link to={to} onClick={onClick}>
-      <Button
-        variant="ghost"
-        className={cn(
-          'w-full justify-start gap-2 px-3 py-6',
-          isActive
-            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-            : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-        )}
-      >
-        <Icon size={20} />
-        <span>{label}</span>
-      </Button>
-    </Link>
-  );
-};
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 
 export function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
-  const location = useLocation();
-
-  const toggleSidebar = () => {
-    setCollapsed(!collapsed);
-  };
-
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
+  const { user } = useAuth();
+  const isAdminOrManager = user?.role === 'admin' || user?.role === 'itr_manager';
 
   return (
-    <div className="relative">
-      <div
-        className={cn(
-          'fixed left-0 top-0 z-40 h-full bg-sidebar transition-all duration-300 ease-in-out',
-          collapsed ? 'w-[60px]' : 'w-[250px]'
-        )}
-      >
-        <div className="flex h-full flex-col">
-          {/* Header/Logo */}
-          <div className="flex h-16 items-center justify-between px-4">
-            {!collapsed && (
-              <div className="flex items-center">
-                <span className="text-xl font-bold text-sidebar-foreground">MediSync</span>
-              </div>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              onClick={toggleSidebar}
-            >
-              {collapsed ? <Menu size={20} /> : <X size={20} />}
-            </Button>
-          </div>
+    <aside className="fixed left-0 top-0 z-30 h-full w-[60px] border-r bg-background md:w-[250px]">
+      <header className="flex h-[60px] items-center justify-between px-3">
+        <Link to="/" className="text-xl font-bold">
+          MediSync
+        </Link>
+        <DropdownMenu>
+          <DropdownMenuTrigger>
+            <Avatar className="h-8 w-8">
+              <AvatarImage src="https://github.com/shadcn.png" alt="@shadcn" />
+              <AvatarFallback>CN</AvatarFallback>
+            </Avatar>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Mon profil</DropdownMenuLabel>
+            <DropdownMenuItem>
+              <Link to="/profile">
+                <User className="mr-2 h-4 w-4" />
+                Profile
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              <LogOut className="mr-2 h-4 w-4" />
+              Se déconnecter
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </header>
 
-          {/* Navigation */}
-          <nav className="flex-1 space-y-1 px-2 py-4">
-            {!collapsed ? (
-              <>
-                <SidebarItem
-                  icon={LayoutDashboard}
-                  label="Dashboard"
-                  to="/"
-                  isActive={isActive('/')}
-                />
-                <SidebarItem
-                  icon={FileStack}
-                  label="Onboardings"
-                  to="/onboardings"
-                  isActive={isActive('/onboardings')}
-                />
-                <SidebarItem
-                  icon={Calendar}
-                  label="Calendar"
-                  to="/calendar"
-                  isActive={isActive('/calendar')}
-                />
-                <SidebarItem
-                  icon={GraduationCap}
-                  label="Training"
-                  to="/training"
-                  isActive={isActive('/training')}
-                />
-                <SidebarItem
-                  icon={Users}
-                  label="Team"
-                  to="/team"
-                  isActive={isActive('/team')}
-                />
-                <SidebarItem
-                  icon={Settings}
-                  label="Settings"
-                  to="/settings"
-                  isActive={isActive('/settings')}
-                />
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    'w-full justify-center px-2 py-6',
-                    isActive('/') ? 'bg-sidebar-accent' : 'hover:bg-sidebar-accent'
-                  )}
-                  asChild
-                >
-                  <Link to="/">
-                    <LayoutDashboard size={20} />
-                  </Link>
-                </Button>
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    'w-full justify-center px-2 py-6',
-                    isActive('/onboardings') ? 'bg-sidebar-accent' : 'hover:bg-sidebar-accent'
-                  )}
-                  asChild
-                >
-                  <Link to="/onboardings">
-                    <FileStack size={20} />
-                  </Link>
-                </Button>
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    'w-full justify-center px-2 py-6',
-                    isActive('/calendar') ? 'bg-sidebar-accent' : 'hover:bg-sidebar-accent'
-                  )}
-                  asChild
-                >
-                  <Link to="/calendar">
-                    <Calendar size={20} />
-                  </Link>
-                </Button>
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    'w-full justify-center px-2 py-6',
-                    isActive('/training') ? 'bg-sidebar-accent' : 'hover:bg-sidebar-accent'
-                  )}
-                  asChild
-                >
-                  <Link to="/training">
-                    <GraduationCap size={20} />
-                  </Link>
-                </Button>
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    'w-full justify-center px-2 py-6',
-                    isActive('/team') ? 'bg-sidebar-accent' : 'hover:bg-sidebar-accent'
-                  )}
-                  asChild
-                >
-                  <Link to="/team">
-                    <Users size={20} />
-                  </Link>
-                </Button>
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    'w-full justify-center px-2 py-6',
-                    isActive('/settings') ? 'bg-sidebar-accent' : 'hover:bg-sidebar-accent'
-                  )}
-                  asChild
-                >
-                  <Link to="/settings">
-                    <Settings size={20} />
-                  </Link>
-                </Button>
-              </>
-            )}
-          </nav>
+      <nav className="flex flex-col">
+        <Link
+          to="/"
+          className="flex h-[60px] items-center gap-4 border-b px-6 text-foreground/60 transition-colors hover:text-foreground"
+        >
+          <DashboardIcon className="h-5 w-5" />
+          <span className="hidden md:inline-block">Tableau de bord</span>
+        </Link>
 
-          {/* Footer (Profile) */}
-          {!collapsed && (
-            <div className="border-t border-sidebar-border px-4 py-3">
-              <div className="flex items-center">
-                <div className="h-8 w-8 rounded-full bg-sidebar-accent" />
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-sidebar-foreground">User Name</p>
-                  <Link to="/profile" className="text-xs text-sidebar-foreground/70 hover:text-sidebar-foreground">
-                    View Profile
-                  </Link>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+        <Link
+          to="/onboardings"
+          className="flex h-[60px] items-center gap-4 border-b px-6 text-foreground/60 transition-colors hover:text-foreground"
+        >
+          <Users className="h-5 w-5" />
+          <span className="hidden md:inline-block">Onboardings</span>
+        </Link>
+
+        <Link
+          to="/calendar"
+          className="flex h-[60px] items-center gap-4 border-b px-6 text-foreground/60 transition-colors hover:text-foreground"
+        >
+          <CalendarIcon className="h-5 w-5" />
+          <span className="hidden md:inline-block">Calendrier</span>
+        </Link>
+
+        <Link
+          to="/training"
+          className="flex h-[60px] items-center gap-4 border-b px-6 text-foreground/60 transition-colors hover:text-foreground"
+        >
+          <GraduationCap className="h-5 w-5" />
+          <span className="hidden md:inline-block">Formations</span>
+        </Link>
+
+      {isAdminOrManager && (
+        <Link
+          to="/sso-logs"
+          className="flex h-[60px] items-center gap-4 border-b px-6 text-foreground/60 transition-colors hover:text-foreground"
+        >
+          <Shield className="h-5 w-5" />
+          <span className="hidden md:inline-block">Logs SSO</span>
+        </Link>
+      )}
+      </nav>
+    </aside>
   );
 }

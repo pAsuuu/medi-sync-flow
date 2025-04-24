@@ -215,6 +215,7 @@ export type Database = {
           email: string | null
           first_name: string | null
           id: string
+          itr_company_id: string | null
           last_name: string | null
           role: string
           updated_at: string
@@ -226,6 +227,7 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           id: string
+          itr_company_id?: string | null
           last_name?: string | null
           role?: string
           updated_at?: string
@@ -237,11 +239,61 @@ export type Database = {
           email?: string | null
           first_name?: string | null
           id?: string
+          itr_company_id?: string | null
           last_name?: string | null
           role?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_itr_company_id_fkey"
+            columns: ["itr_company_id"]
+            isOneToOne: false
+            referencedRelation: "itr_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sso_logs: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          ip_address: string | null
+          itr_company_id: string | null
+          metadata: Json | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          itr_company_id?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          itr_company_id?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sso_logs_itr_company_id_fkey"
+            columns: ["itr_company_id"]
+            isOneToOne: false
+            referencedRelation: "itr_companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_certifications: {
         Row: {
