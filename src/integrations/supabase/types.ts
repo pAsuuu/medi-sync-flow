@@ -9,7 +9,278 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      certifications: {
+        Row: {
+          created_at: string
+          id: string
+          level: number
+          name: string
+          product_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          level?: number
+          name: string
+          product_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          level?: number
+          name?: string
+          product_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certifications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          end_time: string
+          id: string
+          onboarding_id: string | null
+          start_time: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_time: string
+          id?: string
+          onboarding_id?: string | null
+          start_time: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          end_time?: string
+          id?: string
+          onboarding_id?: string | null
+          start_time?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_onboarding_id_fkey"
+            columns: ["onboarding_id"]
+            isOneToOne: false
+            referencedRelation: "onboardings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itr_companies: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      onboardings: {
+        Row: {
+          assigned_to: string | null
+          client_name: string
+          comments: string | null
+          contact_email: string | null
+          contact_person: string
+          contact_phone: string | null
+          created_at: string
+          created_by: string | null
+          desired_date: string | null
+          doctor_count: number | null
+          id: string
+          is_msp: boolean | null
+          itr_company_id: string | null
+          ob_fees_activated: boolean | null
+          paramedical_count: number | null
+          products: string[]
+          scheduled_date: string | null
+          secretary_count: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          client_name: string
+          comments?: string | null
+          contact_email?: string | null
+          contact_person: string
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          desired_date?: string | null
+          doctor_count?: number | null
+          id?: string
+          is_msp?: boolean | null
+          itr_company_id?: string | null
+          ob_fees_activated?: boolean | null
+          paramedical_count?: number | null
+          products?: string[]
+          scheduled_date?: string | null
+          secretary_count?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          client_name?: string
+          comments?: string | null
+          contact_email?: string | null
+          contact_person?: string
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          desired_date?: string | null
+          doctor_count?: number | null
+          id?: string
+          is_msp?: boolean | null
+          itr_company_id?: string | null
+          ob_fees_activated?: boolean | null
+          paramedical_count?: number | null
+          products?: string[]
+          scheduled_date?: string | null
+          secretary_count?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "onboardings_itr_company_id_fkey"
+            columns: ["itr_company_id"]
+            isOneToOne: false
+            referencedRelation: "itr_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          company: string | null
+          created_at: string
+          email: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          company?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_certifications: {
+        Row: {
+          certification_id: string | null
+          created_at: string
+          expiry_date: string
+          id: string
+          received_date: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          certification_id?: string | null
+          created_at?: string
+          expiry_date?: string
+          id?: string
+          received_date?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          certification_id?: string | null
+          created_at?: string
+          expiry_date?: string
+          id?: string
+          received_date?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_certifications_certification_id_fkey"
+            columns: ["certification_id"]
+            isOneToOne: false
+            referencedRelation: "certifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
