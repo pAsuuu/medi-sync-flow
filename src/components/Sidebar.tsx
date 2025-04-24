@@ -1,12 +1,6 @@
+
 import { Link } from "react-router-dom";
-import { DashboardIcon } from "lucide-react";
-import { CalendarIcon } from "lucide-react";
-import { Users } from "lucide-react";
-import { GraduationCap } from "lucide-react";
-import { User } from "lucide-react";
-import { LogOut } from "lucide-react";
-import { Settings } from "lucide-react";
-import { Shield } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, GraduationCap, User, LogOut, Settings, Shield } from "lucide-react";
 import { useAuth } from "@/providers/AuthProvider";
 import {
   DropdownMenu,
@@ -58,7 +52,7 @@ export function Sidebar() {
           to="/"
           className="flex h-[60px] items-center gap-4 border-b px-6 text-foreground/60 transition-colors hover:text-foreground"
         >
-          <DashboardIcon className="h-5 w-5" />
+          <LayoutDashboard className="h-5 w-5" />
           <span className="hidden md:inline-block">Tableau de bord</span>
         </Link>
 
@@ -74,7 +68,7 @@ export function Sidebar() {
           to="/calendar"
           className="flex h-[60px] items-center gap-4 border-b px-6 text-foreground/60 transition-colors hover:text-foreground"
         >
-          <CalendarIcon className="h-5 w-5" />
+          <Calendar className="h-5 w-5" />
           <span className="hidden md:inline-block">Calendrier</span>
         </Link>
 

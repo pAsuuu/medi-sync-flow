@@ -42,15 +42,16 @@ export default function SSOLogs() {
       let query = supabase
         .from('sso_logs')
         .select(`
-          *,
+          id,
+          created_at,
+          event_type,
+          ip_address,
+          user_agent,
           itr_companies (
             name
           ),
-          profiles (
-            email,
-            first_name,
-            last_name
-          )
+          user_id,
+          metadata
         `)
         .order('created_at', { ascending: false });
 
@@ -59,8 +60,36 @@ export default function SSOLogs() {
       }
 
       const { data, error } = await query;
+      
       if (error) throw error;
-      return data;
+      
+      // Get user profile information in a separate query
+      if (data && data.length > 0) {
+        const userIds = data.map(log => log.user_id).filter(id => id);
+        
+        if (userIds.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, first_name, last_name, email')
+            .in('id', userIds);
+            
+          if (!profilesError && profilesData) {
+            // Create a map of profiles by ID for quick lookup
+            const profilesMap = profilesData.reduce((acc, profile) => {
+              acc[profile.id] = profile;
+              return acc;
+            }, {});
+            
+            // Merge profile data with logs
+            return data.map(log => ({
+              ...log,
+              profile: log.user_id ? profilesMap[log.user_id] : null
+            }));
+          }
+        }
+      }
+      
+      return data.map(log => ({ ...log, profile: null }));
     }
   });
 
@@ -110,17 +139,25 @@ export default function SSOLogs() {
                     {format(new Date(log.created_at), 'Pp', { locale: fr })}
                   </TableCell>
                   <TableCell>
-                    {log.profiles?.first_name} {log.profiles?.last_name}
-                    <br />
-                    <span className="text-sm text-muted-foreground">
-                      {log.profiles?.email}
-                    </span>
+                    {log.profile ? 
+                      <>
+                        {log.profile.first_name} {log.profile.last_name}
+                        <br />
+                        <span className="text-sm text-muted-foreground">
+                          {log.profile.email}
+                        </span>
+                      </> 
+                      : 
+                      <span className="text-muted-foreground">
+                        Utilisateur inconnu
+                      </span>
+                    }
                   </TableCell>
-                  <TableCell>{log.itr_companies?.name}</TableCell>
+                  <TableCell>{log.itr_companies?.name || "—"}</TableCell>
                   <TableCell>{log.event_type}</TableCell>
-                  <TableCell>{log.ip_address}</TableCell>
+                  <TableCell>{log.ip_address || "—"}</TableCell>
                   <TableCell className="max-w-[200px] truncate">
-                    {log.user_agent}
+                    {log.user_agent || "—"}
                   </TableCell>
                 </TableRow>
               ))}
