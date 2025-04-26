@@ -73,6 +73,7 @@ const Auth = () => {
         throw new Error('Veuillez remplir tous les champs');
       }
 
+      // Créer manuellement le profil utilisateur d'abord
       // Générer un mot de passe sécurisé unique
       const tempPassword = `${profileData.email}-${Date.now()}-${Math.random().toString(36).substring(2)}`;
       
@@ -83,7 +84,7 @@ const Auth = () => {
         last_name: profileData.lastName
       });
 
-      // Créer le compte utilisateur
+      // Étape 1: Créer le compte utilisateur
       const { data, error } = await supabase.auth.signUp({
         email: profileData.email,
         password: tempPassword,
@@ -124,6 +125,22 @@ const Auth = () => {
         }
       }
 
+      // Étape 2: Créer manuellement l'entrée de profil au cas où le déclencheur échoue
+      if (data?.user) {
+        try {
+          await supabase.from('profiles').insert({
+            id: data.user.id,
+            first_name: profileData.firstName,
+            last_name: profileData.lastName,
+            email: profileData.email,
+            itr_company_id: companyData.id
+          });
+        } catch (profileError) {
+          console.log("Erreur lors de l'insertion manuelle du profil (peut être déjà créé par trigger):", profileError);
+          // Continuez même si cela échoue - cela pourrait signifier que le trigger a fonctionné
+        }
+      }
+
       toast({
         title: "Compte créé avec succès",
         description: "Vous allez être connecté automatiquement.",
@@ -157,7 +174,7 @@ const Auth = () => {
           });
           navigate('/auth');
         }
-      }, 1500);
+      }, 2000);
       
     } catch (error: any) {
       console.error("Erreur complète:", error);
@@ -167,7 +184,7 @@ const Auth = () => {
       if (errorMessage.includes('User already registered')) {
         errorMessage = "Cet email est déjà utilisé. Veuillez vous connecter.";
       } else if (errorMessage.includes('Database error granting user')) {
-        errorMessage = "Erreur lors de l'enregistrement du profil. Vérifiez votre email ou réessayez plus tard.";
+        errorMessage = "Erreur lors de l'enregistrement du profil. Veuillez réessayer dans quelques instants.";
       }
       
       toast({
