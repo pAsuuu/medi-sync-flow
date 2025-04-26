@@ -73,9 +73,16 @@ const Auth = () => {
         throw new Error('Veuillez remplir tous les champs');
       }
 
-      // Générer un mot de passe sécurisé unique basé sur l'email et un timestamp
+      // Générer un mot de passe sécurisé unique
       const tempPassword = `${profileData.email}-${Date.now()}-${Math.random().toString(36).substring(2)}`;
       
+      console.log("Tentative de création de compte avec les données:", {
+        email: profileData.email,
+        itr_company_id: companyData.id,
+        first_name: profileData.firstName,
+        last_name: profileData.lastName
+      });
+
       // Créer le compte utilisateur
       const { data, error } = await supabase.auth.signUp({
         email: profileData.email,
@@ -119,36 +126,39 @@ const Auth = () => {
 
       toast({
         title: "Compte créé avec succès",
-        description: "Vous pouvez maintenant vous connecter avec votre email.",
+        description: "Vous allez être connecté automatiquement.",
       });
       
-      // Connecter automatiquement l'utilisateur
-      try {
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: profileData.email,
-          password: tempPassword,
-        });
-        
-        if (signInError) {
-          console.error("Erreur de connexion après création:", signInError);
-          // Si l'authentification échoue, rediriger vers la page d'accueil
-          toast({
-            title: "Compte créé",
-            description: "Compte créé avec succès. Veuillez vous connecter.",
+      // Attendre un court instant avant de tenter la connexion
+      setTimeout(async () => {
+        try {
+          console.log("Tentative de connexion après création du compte...");
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: profileData.email,
+            password: tempPassword,
           });
-          navigate('/');
-        } else {
-          // Authentifié avec succès
-          navigate('/');
+          
+          if (signInError) {
+            console.error("Erreur de connexion après création:", signInError);
+            toast({
+              title: "Connexion automatique impossible",
+              description: "Veuillez vous connecter manuellement.",
+            });
+            navigate('/auth');
+          } else {
+            console.log("Connexion réussie, redirection vers la page d'accueil");
+            navigate('/');
+          }
+        } catch (signInError) {
+          console.error("Exception lors de la connexion:", signInError);
+          toast({
+            title: "Connexion impossible",
+            description: "Veuillez réessayer de vous connecter dans quelques instants.",
+          });
+          navigate('/auth');
         }
-      } catch (signInError) {
-        console.error("Exception lors de la connexion:", signInError);
-        toast({
-          title: "Compte créé",
-          description: "Votre compte a été créé. Veuillez vous connecter manuellement.",
-        });
-        navigate('/');
-      }
+      }, 1500);
+      
     } catch (error: any) {
       console.error("Erreur complète:", error);
       let errorMessage = error.message || "Une erreur s'est produite";
@@ -157,7 +167,7 @@ const Auth = () => {
       if (errorMessage.includes('User already registered')) {
         errorMessage = "Cet email est déjà utilisé. Veuillez vous connecter.";
       } else if (errorMessage.includes('Database error granting user')) {
-        errorMessage = "Erreur lors de l'enregistrement du profil. Veuillez réessayer.";
+        errorMessage = "Erreur lors de l'enregistrement du profil. Vérifiez votre email ou réessayez plus tard.";
       }
       
       toast({
