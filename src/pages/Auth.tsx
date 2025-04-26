@@ -89,7 +89,33 @@ const Auth = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Erreur de création de compte:", error);
+        
+        // Gérer les différents types d'erreurs
+        if (error.message.includes('User already registered')) {
+          // Si l'utilisateur existe déjà, essayez de le connecter directement
+          toast({
+            title: "Utilisateur existant",
+            description: "Tentative de connexion avec votre compte existant...",
+          });
+          
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email: profileData.email,
+            password: tempPassword,
+          });
+          
+          if (signInError) {
+            throw new Error("Cet email est déjà utilisé. Veuillez vous connecter ou utiliser un autre email.");
+          } else {
+            // Connexion réussie avec un compte existant
+            navigate('/');
+            return;
+          }
+        } else {
+          throw error;
+        }
+      }
 
       toast({
         title: "Compte créé avec succès",
@@ -97,25 +123,40 @@ const Auth = () => {
       });
       
       // Connecter automatiquement l'utilisateur
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: profileData.email,
-        password: tempPassword,
-      });
-      
-      if (signInError) {
-        // Si l'authentification échoue, rediriger vers la page d'accueil
-        navigate('/');
-      } else {
-        // Authentifié avec succès
+      try {
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: profileData.email,
+          password: tempPassword,
+        });
+        
+        if (signInError) {
+          console.error("Erreur de connexion après création:", signInError);
+          // Si l'authentification échoue, rediriger vers la page d'accueil
+          toast({
+            title: "Compte créé",
+            description: "Compte créé avec succès. Veuillez vous connecter.",
+          });
+          navigate('/');
+        } else {
+          // Authentifié avec succès
+          navigate('/');
+        }
+      } catch (signInError) {
+        console.error("Exception lors de la connexion:", signInError);
+        toast({
+          title: "Compte créé",
+          description: "Votre compte a été créé. Veuillez vous connecter manuellement.",
+        });
         navigate('/');
       }
     } catch (error: any) {
-      let errorMessage = error.message;
+      console.error("Erreur complète:", error);
+      let errorMessage = error.message || "Une erreur s'est produite";
       
       // Gérer les erreurs spécifiques
-      if (error.message.includes('User already registered')) {
+      if (errorMessage.includes('User already registered')) {
         errorMessage = "Cet email est déjà utilisé. Veuillez vous connecter.";
-      } else if (error.message.includes('Database error granting user')) {
+      } else if (errorMessage.includes('Database error granting user')) {
         errorMessage = "Erreur lors de l'enregistrement du profil. Veuillez réessayer.";
       }
       
