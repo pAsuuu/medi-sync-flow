@@ -1,11 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Building, User, Mail, ArrowLeft, Loader2 } from 'lucide-react';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { Building, User, Mail } from 'lucide-react';
 import { UserAvatar } from '@/components/UserAvatar';
 import { cn } from '@/lib/utils';
 import { useSignUp } from '@/hooks/useSignUp';
@@ -13,6 +9,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/providers/AuthProvider';
 import { supabase } from '@/integrations/supabase/client';
+import { LoginForm } from '@/components/auth/LoginForm';
+import { CompanyInviteForm } from '@/components/auth/CompanyInviteForm';
+import { ProfileForm } from '@/components/auth/ProfileForm';
+import { LoadingScreen } from '@/components/auth/LoadingScreen';
 
 const Auth = () => {
   const {
@@ -28,20 +28,15 @@ const Auth = () => {
     handleProfileSubmit
   } = useSignUp();
 
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginLoading, setLoginLoading] = useState(false);
   const [mode, setMode] = useState<'signup' | 'login'>('signup');
   const [processingAuth, setProcessingAuth] = useState(false);
   
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { session } = useAuth();
   const [searchParams] = useSearchParams();
   
-  // Gérer la redirection après authentification
   useEffect(() => {
     const handleAuthRedirect = async () => {
-      // Si déjà une session et pas en train de traiter l'auth
       if (session && !processingAuth) {
         const redirectTo = searchParams.get('redirect') || '/';
         console.log("User is authenticated, redirecting to:", redirectTo);
@@ -49,14 +44,12 @@ const Auth = () => {
         return;
       }
       
-      // Vérifier si on a un hash dans l'URL (magic link callback)
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       if (hashParams.get('access_token') || hashParams.get('error')) {
         console.log("Auth callback detected");
         setProcessingAuth(true);
         
         try {
-          // Traite le magic link callback en utilisant la méthode correcte
           const { data, error } = await supabase.auth.getSession();
           console.log("Auth callback result:", data, error);
           
@@ -88,50 +81,47 @@ const Auth = () => {
     };
     
     handleAuthRedirect();
-  }, [session, navigate, searchParams, toast, processingAuth]);
+  }, [session, navigate, searchParams, processingAuth]);
 
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginLoading(true);
-    
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: loginEmail,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth?redirect=/`,
-        }
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      toast({
-        title: "Email envoyé",
-        description: "Veuillez vérifier votre boîte de réception et cliquer sur le lien pour vous connecter.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Erreur de connexion",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoginLoading(false);
+  if (processingAuth) {
+    return <LoadingScreen />;
+  }
+
+  const getHeaderIcon = () => {
+    if (mode === 'login') {
+      return (
+        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+          <Mail className="h-6 w-6 text-primary" />
+        </div>
+      );
     }
+    if (step === 'company') {
+      return (
+        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+          <Building className="h-6 w-6 text-primary" />
+        </div>
+      );
+    }
+    return (
+      <UserAvatar 
+        name={`${profileData.firstName} ${profileData.lastName}`} 
+        size="lg"
+        className="h-16 w-16 transform transition-all duration-300"
+      />
+    );
   };
 
-  // Si on est en train de traiter l'authentification, afficher un indicateur de chargement
-  if (processingAuth) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/50">
-        <div className="text-center space-y-4">
-          <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
-          <p className="text-muted-foreground">Authentification en cours...</p>
-        </div>
-      </div>
-    );
-  }
+  const getHeaderTitle = () => {
+    if (mode === 'login') return 'Connexion';
+    if (step === 'company') return 'Bienvenue';
+    return `Rejoindre ${companyData?.name}`;
+  };
+
+  const getHeaderDescription = () => {
+    if (mode === 'login') return 'Entrez votre email pour recevoir un lien de connexion';
+    if (step === 'company') return 'Entrez le code d\'invitation de votre entreprise';
+    return 'Complétez votre profil pour continuer';
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/50 px-4 py-6">
@@ -142,202 +132,34 @@ const Auth = () => {
       )}>
         <CardHeader className="space-y-3">
           <div className="flex justify-center">
-            {mode === 'login' ? (
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Mail className="h-6 w-6 text-primary" />
-              </div>
-            ) : step === 'company' ? (
-              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Building className="h-6 w-6 text-primary" />
-              </div>
-            ) : (
-              <UserAvatar 
-                name={`${profileData.firstName} ${profileData.lastName}`} 
-                size="lg"
-                className="h-16 w-16 transform transition-all duration-300"
-              />
-            )}
+            {getHeaderIcon()}
           </div>
           <CardTitle className="text-2xl font-bold text-center">
-            {mode === 'login' ? 'Connexion' : step === 'company' ? 'Bienvenue' : `Rejoindre ${companyData?.name}`}
+            {getHeaderTitle()}
           </CardTitle>
           <CardDescription className="text-center text-base">
-            {mode === 'login' 
-              ? 'Entrez votre email pour recevoir un lien de connexion'
-              : step === 'company' 
-                ? 'Entrez le code d\'invitation de votre entreprise'
-                : 'Complétez votre profil pour continuer'}
+            {getHeaderDescription()}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {mode === 'login' ? (
-            <form onSubmit={handleLoginSubmit} className="space-y-6">
-              <div className="space-y-3">
-                <Label htmlFor="loginEmail" className="text-base">Email</Label>
-                <div className="relative">
-                  <Input
-                    id="loginEmail"
-                    type="email"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    className="pl-10 h-11 text-base"
-                    placeholder="votre@email.com"
-                    required
-                  />
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <Button 
-                  type="submit" 
-                  className="w-full h-11 text-base font-medium transition-all"
-                  disabled={loginLoading}
-                >
-                  {loginLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Envoi en cours...
-                    </>
-                  ) : 'Recevoir un lien de connexion'}
-                </Button>
-
-                <div className="text-center">
-                  <Button 
-                    variant="link" 
-                    type="button"
-                    onClick={() => setMode('signup')}
-                    className="text-sm"
-                  >
-                    Nouvelle inscription avec code d'invitation
-                  </Button>
-                </div>
-              </div>
-            </form>
+            <LoginForm onModeChange={() => setMode('signup')} />
           ) : step === 'company' ? (
-            <form onSubmit={verifyInvitationCode} className="space-y-8">
-              <div className="space-y-4">
-                <Label htmlFor="invitationCode" className="text-center block text-base">
-                  Code d'invitation
-                </Label>
-                <div className="flex justify-center">
-                  <InputOTP 
-                    maxLength={8} 
-                    value={invitationCode} 
-                    onChange={setInvitationCode}
-                    className="gap-2"
-                  >
-                    <InputOTPGroup>
-                      <InputOTPSlot index={0} className="border-primary/20" />
-                      <InputOTPSlot index={1} className="border-primary/20" />
-                      <InputOTPSlot index={2} className="border-primary/20" />
-                      <InputOTPSlot index={3} className="border-primary/20" />
-                      <InputOTPSlot index={4} className="border-primary/20" />
-                      <InputOTPSlot index={5} className="border-primary/20" />
-                      <InputOTPSlot index={6} className="border-primary/20" />
-                      <InputOTPSlot index={7} className="border-primary/20" />
-                    </InputOTPGroup>
-                  </InputOTP>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <Button 
-                  type="submit" 
-                  className="w-full h-11 text-base font-medium transition-all"
-                  disabled={loading || invitationCode.length !== 8}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Vérification...
-                    </>
-                  ) : 'Continuer'}
-                </Button>
-
-                <div className="text-center">
-                  <Button 
-                    variant="link" 
-                    type="button"
-                    onClick={() => setMode('login')}
-                    className="text-sm"
-                  >
-                    Déjà inscrit ? Se connecter
-                  </Button>
-                </div>
-              </div>
-            </form>
+            <CompanyInviteForm
+              invitationCode={invitationCode}
+              setInvitationCode={setInvitationCode}
+              loading={loading}
+              onSubmit={verifyInvitationCode}
+              onModeChange={() => setMode('login')}
+            />
           ) : (
-            <form onSubmit={handleProfileSubmit} className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-3">
-                  <Label htmlFor="firstName" className="text-base">Prénom</Label>
-                  <div className="relative">
-                    <Input
-                      id="firstName"
-                      value={profileData.firstName}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))}
-                      className="pl-10 h-11 text-base"
-                      required
-                      autoFocus
-                    />
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <Label htmlFor="lastName" className="text-base">Nom</Label>
-                  <div className="relative">
-                    <Input
-                      id="lastName"
-                      value={profileData.lastName}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))}
-                      className="pl-10 h-11 text-base"
-                      required
-                    />
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <Label htmlFor="email" className="text-base">Email professionnel</Label>
-                  <div className="relative">
-                    <Input
-                      id="email"
-                      type="email"
-                      value={profileData.email}
-                      onChange={(e) => setProfileData(prev => ({ ...prev, email: e.target.value }))}
-                      className="pl-10 h-11 text-base"
-                      required
-                    />
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <Button 
-                  type="submit" 
-                  className="w-full h-11 text-base font-medium transition-all"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Envoi en cours...
-                    </>
-                  ) : 'Recevoir un lien de connexion'}
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full flex items-center justify-center gap-2"
-                  onClick={() => setStep('company')}
-                >
-                  <ArrowLeft className="h-4 w-4" /> Retour
-                </Button>
-              </div>
-            </form>
+            <ProfileForm
+              profileData={profileData}
+              setProfileData={setProfileData}
+              loading={loading}
+              onSubmit={handleProfileSubmit}
+              onBack={() => setStep('company')}
+            />
           )}
         </CardContent>
       </Card>
