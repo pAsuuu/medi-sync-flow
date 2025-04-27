@@ -131,6 +131,7 @@ export const useSignUp = () => {
 
   return {
     step,
+    setStep,  // Explicitly returning setStep here
     invitationCode,
     setInvitationCode,
     loading,

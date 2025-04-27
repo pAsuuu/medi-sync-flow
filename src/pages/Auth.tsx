@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 const Auth = () => {
   const {
     step,
+    setStep,  // Make sure this is correctly destructured
     invitationCode,
     setInvitationCode,
     loading,
