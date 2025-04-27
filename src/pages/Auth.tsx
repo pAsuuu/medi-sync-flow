@@ -56,8 +56,8 @@ const Auth = () => {
         setProcessingAuth(true);
         
         try {
-          // Traite le magic link callback
-          const { data, error } = await supabase.auth.getSessionFromUrl();
+          // Traite le magic link callback en utilisant la méthode correcte
+          const { data, error } = await supabase.auth.getSession();
           console.log("Auth callback result:", data, error);
           
           if (error) {
