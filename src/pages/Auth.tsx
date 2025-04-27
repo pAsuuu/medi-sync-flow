@@ -1,201 +1,26 @@
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
 import { Building, User, Mail } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { UserAvatar } from '@/components/UserAvatar';
 import { cn } from '@/lib/utils';
+import { useSignUp } from '@/hooks/useSignUp';
 
 const Auth = () => {
-  const [step, setStep] = useState<'company' | 'profile'>('company');
-  const [invitationCode, setInvitationCode] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [companyData, setCompanyData] = useState<{ id: string; name: string } | null>(null);
-  const [profileData, setProfileData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-  });
-  const navigate = useNavigate();
-  const { toast } = useToast();
-
-  const verifyInvitationCode = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      // Vérifier le code d'invitation
-      const { data: company, error } = await supabase
-        .from('itr_companies')
-        .select('id, name')
-        .eq('invitation_code', invitationCode)
-        .single();
-
-      if (error) {
-        throw new Error('Code d\'invitation invalide');
-      }
-      
-      if (!company) {
-        throw new Error('Entreprise non trouvée');
-      }
-
-      setCompanyData(company);
-      setStep('profile');
-      toast({
-        title: "Entreprise identifiée",
-        description: `Bienvenue chez ${company.name}`,
-      });
-    } catch (error: any) {
-      toast({
-        title: "Erreur",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleProfileSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!companyData) return;
-    setLoading(true);
-
-    try {
-      // Valider les données
-      if (!profileData.firstName || !profileData.lastName || !profileData.email) {
-        throw new Error('Veuillez remplir tous les champs');
-      }
-
-      // Créer manuellement le profil utilisateur d'abord
-      // Générer un mot de passe sécurisé unique
-      const tempPassword = `${profileData.email}-${Date.now()}-${Math.random().toString(36).substring(2)}`;
-      
-      console.log("Tentative de création de compte avec les données:", {
-        email: profileData.email,
-        itr_company_id: companyData.id,
-        first_name: profileData.firstName,
-        last_name: profileData.lastName
-      });
-
-      // Étape 1: Créer le compte utilisateur
-      const { data, error } = await supabase.auth.signUp({
-        email: profileData.email,
-        password: tempPassword,
-        options: {
-          data: {
-            first_name: profileData.firstName,
-            last_name: profileData.lastName,
-            itr_company_id: companyData.id
-          }
-        }
-      });
-
-      if (error) {
-        console.error("Erreur de création de compte:", error);
-        
-        // Gérer les différents types d'erreurs
-        if (error.message.includes('User already registered')) {
-          // Si l'utilisateur existe déjà, essayez de le connecter directement
-          toast({
-            title: "Utilisateur existant",
-            description: "Tentative de connexion avec votre compte existant...",
-          });
-          
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: profileData.email,
-            password: tempPassword,
-          });
-          
-          if (signInError) {
-            throw new Error("Cet email est déjà utilisé. Veuillez vous connecter ou utiliser un autre email.");
-          } else {
-            // Connexion réussie avec un compte existant
-            navigate('/');
-            return;
-          }
-        } else {
-          throw error;
-        }
-      }
-
-      // Étape 2: Créer manuellement l'entrée de profil au cas où le déclencheur échoue
-      if (data?.user) {
-        try {
-          await supabase.from('profiles').insert({
-            id: data.user.id,
-            first_name: profileData.firstName,
-            last_name: profileData.lastName,
-            email: profileData.email,
-            itr_company_id: companyData.id
-          });
-        } catch (profileError) {
-          console.log("Erreur lors de l'insertion manuelle du profil (peut être déjà créé par trigger):", profileError);
-          // Continuez même si cela échoue - cela pourrait signifier que le trigger a fonctionné
-        }
-      }
-
-      toast({
-        title: "Compte créé avec succès",
-        description: "Vous allez être connecté automatiquement.",
-      });
-      
-      // Attendre un court instant avant de tenter la connexion
-      setTimeout(async () => {
-        try {
-          console.log("Tentative de connexion après création du compte...");
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: profileData.email,
-            password: tempPassword,
-          });
-          
-          if (signInError) {
-            console.error("Erreur de connexion après création:", signInError);
-            toast({
-              title: "Connexion automatique impossible",
-              description: "Veuillez vous connecter manuellement.",
-            });
-            navigate('/auth');
-          } else {
-            console.log("Connexion réussie, redirection vers la page d'accueil");
-            navigate('/');
-          }
-        } catch (signInError) {
-          console.error("Exception lors de la connexion:", signInError);
-          toast({
-            title: "Connexion impossible",
-            description: "Veuillez réessayer de vous connecter dans quelques instants.",
-          });
-          navigate('/auth');
-        }
-      }, 2000);
-      
-    } catch (error: any) {
-      console.error("Erreur complète:", error);
-      let errorMessage = error.message || "Une erreur s'est produite";
-      
-      // Gérer les erreurs spécifiques
-      if (errorMessage.includes('User already registered')) {
-        errorMessage = "Cet email est déjà utilisé. Veuillez vous connecter.";
-      } else if (errorMessage.includes('Database error granting user')) {
-        errorMessage = "Erreur lors de l'enregistrement du profil. Veuillez réessayer dans quelques instants.";
-      }
-      
-      toast({
-        title: "Erreur",
-        description: errorMessage,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    step,
+    invitationCode,
+    setInvitationCode,
+    loading,
+    companyData,
+    profileData,
+    setProfileData,
+    verifyInvitationCode,
+    handleProfileSubmit
+  } = useSignUp();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/50 px-4 py-6">
