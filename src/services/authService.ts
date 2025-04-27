@@ -36,26 +36,15 @@ export const authService = {
   },
 
   /**
-   * Crée un nouveau compte utilisateur
+   * Envoie un magic link pour l'authentification
    * @param profileData Données du profil utilisateur
-   * @returns Données de l'utilisateur créé
+   * @returns Résultat de l'envoi du magic link
    */
-  async registerUser(profileData: ProfileData) {
-    // Générer un mot de passe sécurisé unique
-    const tempPassword = `${profileData.email}-${Date.now()}-${Math.random().toString(36).substring(2)}`;
-    
-    console.log("Tentative de création de compte avec les données:", {
+  async sendMagicLink(profileData: ProfileData) {
+    const { data, error } = await supabase.auth.signInWithOtp({
       email: profileData.email,
-      itr_company_id: profileData.companyId,
-      first_name: profileData.firstName,
-      last_name: profileData.lastName
-    });
-
-    // Étape 1: Créer le compte utilisateur
-    const { data, error } = await supabase.auth.signUp({
-      email: profileData.email,
-      password: tempPassword,
       options: {
+        emailRedirectTo: window.location.origin,
         data: {
           first_name: profileData.firstName,
           last_name: profileData.lastName,
@@ -65,48 +54,10 @@ export const authService = {
     });
 
     if (error) {
-      // Gérer les cas d'erreurs spécifiques
-      if (error.message.includes('User already registered')) {
-        throw new Error("Cet email est déjà utilisé. Veuillez vous connecter ou utiliser un autre email.");
-      }
       throw error;
-    }
-
-    if (!data.user) {
-      throw new Error("Erreur lors de la création du compte");
-    }
-
-    // Étape 2: Créer manuellement l'entrée de profil
-    try {
-      await supabase.from('profiles').insert({
-        id: data.user.id,
-        first_name: profileData.firstName,
-        last_name: profileData.lastName,
-        email: profileData.email,
-        itr_company_id: profileData.companyId
-      });
-    } catch (profileError) {
-      console.log("Erreur lors de l'insertion manuelle du profil:", profileError);
-      // Nous continuons même si cette étape échoue car le trigger pourrait l'avoir déjà créé
     }
 
     return data;
-  },
-
-  /**
-   * Connecte un utilisateur avec son email et mot de passe
-   * @param email Email de l'utilisateur
-   * @param password Mot de passe de l'utilisateur
-   */
-  async signIn(email: string, password: string) {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) {
-      throw error;
-    }
   },
 
   /**

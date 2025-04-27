@@ -3,11 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Building, User, Mail } from 'lucide-react';
+import { Building, User, Mail, ArrowLeft } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { UserAvatar } from '@/components/UserAvatar';
 import { cn } from '@/lib/utils';
 import { useSignUp } from '@/hooks/useSignUp';
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 const Auth = () => {
   const {
@@ -22,6 +26,43 @@ const Auth = () => {
     handleProfileSubmit
   } = useSignUp();
 
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [mode, setMode] = useState<'signup' | 'login'>('signup');
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: loginEmail,
+        options: {
+          emailRedirectTo: window.location.origin,
+        }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Email envoyé",
+        description: "Veuillez vérifier votre boîte de réception et cliquer sur le lien pour vous connecter.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erreur de connexion",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/50 px-4 py-6">
       <Card className={cn(
@@ -31,7 +72,11 @@ const Auth = () => {
       )}>
         <CardHeader className="space-y-3">
           <div className="flex justify-center">
-            {step === 'company' ? (
+            {mode === 'login' ? (
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <Mail className="h-6 w-6 text-primary" />
+              </div>
+            ) : step === 'company' ? (
               <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
                 <Building className="h-6 w-6 text-primary" />
               </div>
@@ -44,16 +89,57 @@ const Auth = () => {
             )}
           </div>
           <CardTitle className="text-2xl font-bold text-center">
-            {step === 'company' ? 'Bienvenue' : `Rejoindre ${companyData?.name}`}
+            {mode === 'login' ? 'Connexion' : step === 'company' ? 'Bienvenue' : `Rejoindre ${companyData?.name}`}
           </CardTitle>
           <CardDescription className="text-center text-base">
-            {step === 'company' 
-              ? 'Entrez le code d\'invitation de votre entreprise'
-              : 'Complétez votre profil pour continuer'}
+            {mode === 'login' 
+              ? 'Entrez votre email pour recevoir un lien de connexion'
+              : step === 'company' 
+                ? 'Entrez le code d\'invitation de votre entreprise'
+                : 'Complétez votre profil pour continuer'}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {step === 'company' ? (
+          {mode === 'login' ? (
+            <form onSubmit={handleLoginSubmit} className="space-y-6">
+              <div className="space-y-3">
+                <Label htmlFor="loginEmail" className="text-base">Email</Label>
+                <div className="relative">
+                  <Input
+                    id="loginEmail"
+                    type="email"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    className="pl-10 h-11 text-base"
+                    placeholder="votre@email.com"
+                    required
+                  />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 text-base font-medium transition-all"
+                  disabled={loginLoading}
+                >
+                  {loginLoading ? 'Envoi en cours...' : 'Recevoir un lien de connexion'}
+                </Button>
+
+                <div className="text-center">
+                  <Button 
+                    variant="link" 
+                    type="button"
+                    onClick={() => setMode('signup')}
+                    className="text-sm"
+                  >
+                    Nouvelle inscription avec code d'invitation
+                  </Button>
+                </div>
+              </div>
+            </form>
+          ) : step === 'company' ? (
             <form onSubmit={verifyInvitationCode} className="space-y-8">
               <div className="space-y-4">
                 <Label htmlFor="invitationCode" className="text-center block text-base">
@@ -79,13 +165,26 @@ const Auth = () => {
                   </InputOTP>
                 </div>
               </div>
-              <Button 
-                type="submit" 
-                className="w-full h-11 text-base font-medium transition-all"
-                disabled={loading || invitationCode.length !== 8}
-              >
-                {loading ? 'Vérification...' : 'Continuer'}
-              </Button>
+              <div className="space-y-4">
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 text-base font-medium transition-all"
+                  disabled={loading || invitationCode.length !== 8}
+                >
+                  {loading ? 'Vérification...' : 'Continuer'}
+                </Button>
+
+                <div className="text-center">
+                  <Button 
+                    variant="link" 
+                    type="button"
+                    onClick={() => setMode('login')}
+                    className="text-sm"
+                  >
+                    Déjà inscrit ? Se connecter
+                  </Button>
+                </div>
+              </div>
             </form>
           ) : (
             <form onSubmit={handleProfileSubmit} className="space-y-6">
@@ -135,13 +234,24 @@ const Auth = () => {
                 </div>
               </div>
 
-              <Button 
-                type="submit" 
-                className="w-full h-11 text-base font-medium transition-all"
-                disabled={loading}
-              >
-                {loading ? 'Création du compte...' : 'Créer mon compte'}
-              </Button>
+              <div className="space-y-4">
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 text-base font-medium transition-all"
+                  disabled={loading}
+                >
+                  {loading ? 'Envoi en cours...' : 'Recevoir un lien de connexion'}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full flex items-center justify-center gap-2"
+                  onClick={() => setStep('company')}
+                >
+                  <ArrowLeft className="h-4 w-4" /> Retour
+                </Button>
+              </div>
             </form>
           )}
         </CardContent>
