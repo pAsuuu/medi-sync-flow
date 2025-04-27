@@ -1,22 +1,23 @@
 
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Building, User, Mail, ArrowLeft } from 'lucide-react';
+import { Building, User, Mail, ArrowLeft, Loader2 } from 'lucide-react';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { UserAvatar } from '@/components/UserAvatar';
 import { cn } from '@/lib/utils';
 import { useSignUp } from '@/hooks/useSignUp';
-import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/providers/AuthProvider';
+import { supabase } from '@/integrations/supabase/client';
 
 const Auth = () => {
   const {
     step,
-    setStep,  // Make sure this is correctly destructured
+    setStep,
     invitationCode,
     setInvitationCode,
     loading,
@@ -30,8 +31,64 @@ const Auth = () => {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [mode, setMode] = useState<'signup' | 'login'>('signup');
+  const [processingAuth, setProcessingAuth] = useState(false);
+  
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { session } = useAuth();
+  const [searchParams] = useSearchParams();
+  
+  // Gérer la redirection après authentification
+  useEffect(() => {
+    const handleAuthRedirect = async () => {
+      // Si déjà une session et pas en train de traiter l'auth
+      if (session && !processingAuth) {
+        const redirectTo = searchParams.get('redirect') || '/';
+        console.log("User is authenticated, redirecting to:", redirectTo);
+        navigate(redirectTo);
+        return;
+      }
+      
+      // Vérifier si on a un hash dans l'URL (magic link callback)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      if (hashParams.get('access_token') || hashParams.get('error')) {
+        console.log("Auth callback detected");
+        setProcessingAuth(true);
+        
+        try {
+          // Traite le magic link callback
+          const { data, error } = await supabase.auth.getSessionFromUrl();
+          console.log("Auth callback result:", data, error);
+          
+          if (error) {
+            throw error;
+          }
+          
+          if (data?.session) {
+            console.log("Session obtained from URL");
+            toast({
+              title: "Connexion réussie",
+              description: "Vous êtes maintenant connecté",
+            });
+            
+            const redirectTo = searchParams.get('redirect') || '/';
+            navigate(redirectTo);
+          }
+        } catch (error: any) {
+          console.error("Auth callback error:", error);
+          toast({
+            title: "Erreur d'authentification",
+            description: error.message || "Échec de l'authentification",
+            variant: "destructive",
+          });
+        } finally {
+          setProcessingAuth(false);
+        }
+      }
+    };
+    
+    handleAuthRedirect();
+  }, [session, navigate, searchParams, toast, processingAuth]);
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +98,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOtp({
         email: loginEmail,
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: `${window.location.origin}/auth?redirect=/`,
         }
       });
       
@@ -63,6 +120,18 @@ const Auth = () => {
       setLoginLoading(false);
     }
   };
+
+  // Si on est en train de traiter l'authentification, afficher un indicateur de chargement
+  if (processingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/50">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-12 w-12 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground">Authentification en cours...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/50 px-4 py-6">
@@ -125,7 +194,12 @@ const Auth = () => {
                   className="w-full h-11 text-base font-medium transition-all"
                   disabled={loginLoading}
                 >
-                  {loginLoading ? 'Envoi en cours...' : 'Recevoir un lien de connexion'}
+                  {loginLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Envoi en cours...
+                    </>
+                  ) : 'Recevoir un lien de connexion'}
                 </Button>
 
                 <div className="text-center">
@@ -172,7 +246,12 @@ const Auth = () => {
                   className="w-full h-11 text-base font-medium transition-all"
                   disabled={loading || invitationCode.length !== 8}
                 >
-                  {loading ? 'Vérification...' : 'Continuer'}
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Vérification...
+                    </>
+                  ) : 'Continuer'}
                 </Button>
 
                 <div className="text-center">
@@ -241,7 +320,12 @@ const Auth = () => {
                   className="w-full h-11 text-base font-medium transition-all"
                   disabled={loading}
                 >
-                  {loading ? 'Envoi en cours...' : 'Recevoir un lien de connexion'}
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Envoi en cours...
+                    </>
+                  ) : 'Recevoir un lien de connexion'}
                 </Button>
 
                 <Button

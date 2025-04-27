@@ -41,10 +41,12 @@ export const authService = {
    * @returns Résultat de l'envoi du magic link
    */
   async sendMagicLink(profileData: ProfileData) {
+    console.log("Sending magic link to:", profileData.email);
+    
     const { data, error } = await supabase.auth.signInWithOtp({
       email: profileData.email,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/auth?redirect=/`,
         data: {
           first_name: profileData.firstName,
           last_name: profileData.lastName,
@@ -54,9 +56,11 @@ export const authService = {
     });
 
     if (error) {
+      console.error("Error sending magic link:", error);
       throw error;
     }
 
+    console.log("Magic link sent successfully");
     return data;
   },
 
@@ -66,5 +70,27 @@ export const authService = {
   async getSession() {
     const { data } = await supabase.auth.getSession();
     return data.session;
+  },
+
+  /**
+   * Processus de login avec Magic Link pour un utilisateur existant
+   */
+  async loginWithMagicLink(email: string) {
+    console.log("Logging in with magic link:", email);
+    
+    const { data, error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth?redirect=/`,
+      }
+    });
+
+    if (error) {
+      console.error("Error sending login magic link:", error);
+      throw error;
+    }
+
+    console.log("Login magic link sent successfully");
+    return data;
   }
 };
