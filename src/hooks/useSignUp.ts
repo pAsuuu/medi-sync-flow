@@ -34,9 +34,10 @@ export const useSignUp = () => {
     setLoading(true);
 
     try {
-      // Vérifier le code d'invitation
+      console.log("Verifying invitation code:", invitationCode);
       const company = await authService.verifyInvitationCode(invitationCode);
       
+      console.log("Company found:", company);
       setCompanyData(company);
       setStep('profile');
       toast({
@@ -47,7 +48,7 @@ export const useSignUp = () => {
       console.error("Erreur lors de la vérification du code d'invitation:", error);
       toast({
         title: "Erreur",
-        description: error.message,
+        description: error.message || "Code d'invitation invalide",
         variant: "destructive",
       });
     } finally {
@@ -57,7 +58,15 @@ export const useSignUp = () => {
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!companyData) return;
+    if (!companyData) {
+      toast({
+        title: "Erreur",
+        description: "Les données de l'entreprise sont manquantes",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -65,6 +74,9 @@ export const useSignUp = () => {
       if (!profileData.firstName || !profileData.lastName || !profileData.email) {
         throw new Error('Veuillez remplir tous les champs');
       }
+
+      console.log("Submitting profile data:", profileData);
+      console.log("Company data:", companyData);
 
       // Enregistrer les données de profil dans localStorage pour utilisation ultérieure
       const userData = {

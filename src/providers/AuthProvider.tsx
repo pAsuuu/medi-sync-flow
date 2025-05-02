@@ -43,32 +43,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // Configuration de l'écouteur d'état d'authentification
+    console.log("Setting up auth provider...");
+    // Set up auth listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
-        console.log("Auth event:", event);
+        console.log("Auth state changed:", event);
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
         
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          console.log("User signed in or token refreshed");
-          setSession(currentSession);
-          setUser(currentSession?.user ?? null);
-          setLoading(false);
-        } else if (event === 'SIGNED_OUT') {
-          console.log("User signed out");
-          setSession(null);
-          setUser(null);
+        // Don't set loading to false here - wait for initial session check
+        if (event === 'SIGNED_OUT') {
           setLoading(false);
         }
       }
     );
 
-    // Vérification de la session existante
+    // THEN check for existing session
     const checkSession = async () => {
       try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        console.log("Current session check:", currentSession ? "Session exists" : "No session");
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
+        console.log("Checking for existing session...");
+        const { data } = await supabase.auth.getSession();
+        console.log("Session check result:", data.session ? "Found session" : "No session");
+        
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
       } catch (error) {
         console.error("Error checking session:", error);
       } finally {
@@ -78,7 +76,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     checkSession();
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log("Cleaning up auth subscription");
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (

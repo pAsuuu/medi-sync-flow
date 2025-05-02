@@ -18,6 +18,8 @@ export const authService = {
    * @returns Informations sur l'entreprise si le code est valide
    */
   async verifyInvitationCode(invitationCode: string) {
+    console.log("Verifying invitation code:", invitationCode);
+    
     const { data: company, error } = await supabase
       .from('itr_companies')
       .select('id, name')
@@ -73,7 +75,9 @@ export const authService = {
    * Vérifie si l'utilisateur est déjà connecté
    */
   async getSession() {
+    console.log("Getting current session");
     const { data } = await supabase.auth.getSession();
+    console.log("Session data:", data.session ? "Session exists" : "No session");
     return data.session;
   },
 

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Mail, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { authService } from '@/services/authService';
 
 interface LoginFormProps {
   onModeChange: () => void;
@@ -21,24 +21,17 @@ export const LoginForm = ({ onModeChange }: LoginFormProps) => {
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: loginEmail,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth?redirect=/`,
-        }
-      });
-      
-      if (error) throw error;
+      await authService.loginWithMagicLink(loginEmail);
       
       toast({
         title: "Email envoyé",
         description: "Veuillez vérifier votre boîte de réception et cliquer sur le lien pour vous connecter.",
       });
     } catch (error: any) {
-      console.error("Login error:", error);
+      console.error("Erreur de connexion:", error);
       toast({
         title: "Erreur de connexion",
-        description: error.message,
+        description: error.message || "Une erreur s'est produite lors de l'envoi du lien",
         variant: "destructive",
       });
     } finally {
