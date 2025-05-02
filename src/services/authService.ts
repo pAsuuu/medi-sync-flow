@@ -25,6 +25,7 @@ export const authService = {
       .single();
 
     if (error) {
+      console.error("Error verifying invitation code:", error);
       throw new Error('Code d\'invitation invalide');
     }
       
@@ -41,7 +42,11 @@ export const authService = {
    * @returns Résultat de l'envoi du magic link
    */
   async sendMagicLink(profileData: ProfileData) {
-    console.log("Sending magic link to:", profileData.email);
+    console.log("Sending magic link to:", profileData.email, "with profile data:", {
+      first_name: profileData.firstName,
+      last_name: profileData.lastName,
+      itr_company_id: profileData.companyId
+    });
     
     const { data, error } = await supabase.auth.signInWithOtp({
       email: profileData.email,

@@ -77,7 +77,7 @@ export const useSignUp = () => {
       
       localStorage.setItem('user_profile_data', JSON.stringify(userData));
       
-      // Envoyer le magic link
+      // Envoyer le magic link avec les données du profil
       await authService.sendMagicLink({
         firstName: profileData.firstName,
         lastName: profileData.lastName,
@@ -105,7 +105,7 @@ export const useSignUp = () => {
 
   return {
     step,
-    setStep,  // Explicitly returning setStep here
+    setStep,
     invitationCode,
     setInvitationCode,
     loading,

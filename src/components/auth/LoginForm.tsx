@@ -35,6 +35,7 @@ export const LoginForm = ({ onModeChange }: LoginFormProps) => {
         description: "Veuillez vérifier votre boîte de réception et cliquer sur le lien pour vous connecter.",
       });
     } catch (error: any) {
+      console.error("Login error:", error);
       toast({
         title: "Erreur de connexion",
         description: error.message,
