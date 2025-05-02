@@ -1,7 +1,6 @@
 
 import { Link } from "react-router-dom";
 import { LayoutDashboard, Calendar, Users, GraduationCap, User, LogOut, Settings, Shield } from "lucide-react";
-import { useAuth } from "@/providers/AuthProvider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,9 +13,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 export function Sidebar() {
-  const { user } = useAuth();
-  const isAdminOrManager = user?.role === 'admin' || user?.role === 'itr_manager';
-
+  // Remove the useAuth hook and related logic
+  // Instead of conditional rendering based on user role, show all menu items
+  
   return (
     <aside className="fixed left-0 top-0 z-30 h-full w-[60px] border-r bg-background md:w-[250px]">
       <header className="flex h-[60px] items-center justify-between px-3">
@@ -80,7 +79,7 @@ export function Sidebar() {
           <span className="hidden md:inline-block">Formations</span>
         </Link>
 
-      {isAdminOrManager && (
+        {/* Show the SSO logs link for everyone since we no longer have auth */}
         <Link
           to="/sso-logs"
           className="flex h-[60px] items-center gap-4 border-b px-6 text-foreground/60 transition-colors hover:text-foreground"
@@ -88,7 +87,6 @@ export function Sidebar() {
           <Shield className="h-5 w-5" />
           <span className="hidden md:inline-block">Logs SSO</span>
         </Link>
-      )}
       </nav>
     </aside>
   );
