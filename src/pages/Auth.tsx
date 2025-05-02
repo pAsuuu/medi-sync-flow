@@ -12,6 +12,8 @@ import { CompanyInviteForm } from '@/components/auth/CompanyInviteForm';
 import { ProfileForm } from '@/components/auth/ProfileForm';
 import { LoadingScreen } from '@/components/auth/LoadingScreen';
 import { AuthHeader } from '@/components/auth/AuthHeader';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const Auth = () => {
   const {
@@ -29,11 +31,37 @@ const Auth = () => {
 
   const [mode, setMode] = useState<'signup' | 'login'>('signup');
   const [processingAuth, setProcessingAuth] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   
   const navigate = useNavigate();
   const { session } = useAuth();
   const [searchParams] = useSearchParams();
   const { toast } = useToast();
+  
+  // Extract error from hash if present
+  useEffect(() => {
+    const parseHashParams = () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const error = hashParams.get('error');
+      const errorDescription = hashParams.get('error_description');
+      
+      if (error) {
+        const errorMessage = errorDescription 
+          ? decodeURIComponent(errorDescription.replace(/\+/g, ' '))
+          : `Erreur d'authentification: ${error}`;
+        
+        setAuthError(errorMessage);
+        console.error("Auth error from URL:", { error, errorDescription });
+        
+        // Clean the URL by removing error params
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+      }
+    };
+    
+    parseHashParams();
+  }, []);
   
   useEffect(() => {
     const handleAuthRedirect = async () => {
@@ -69,6 +97,7 @@ const Auth = () => {
           }
         } catch (error: any) {
           console.error("Auth callback error:", error);
+          setAuthError(error.message || "Échec de l'authentification");
           toast({
             title: "Erreur d'authentification",
             description: error.message || "Échec de l'authentification",
@@ -81,7 +110,7 @@ const Auth = () => {
     };
     
     handleAuthRedirect();
-  }, [session, navigate, searchParams, processingAuth]);
+  }, [session, navigate, searchParams, processingAuth, toast]);
 
   if (processingAuth) {
     return <LoadingScreen />;
@@ -103,6 +132,14 @@ const Auth = () => {
           />
         </CardHeader>
         <CardContent>
+          {authError && (
+            <Alert variant="destructive" className="mb-6">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Erreur</AlertTitle>
+              <AlertDescription>{authError}</AlertDescription>
+            </Alert>
+          )}
+          
           {mode === 'login' ? (
             <LoginForm onModeChange={() => setMode('signup')} />
           ) : step === 'company' ? (
@@ -129,4 +166,3 @@ const Auth = () => {
 };
 
 export default Auth;
-
