@@ -25,17 +25,17 @@ const AppRoutes = () => {
           <main className="flex-1 overflow-y-auto pl-[60px] md:pl-[250px]">
             <Routes>
               <Route index element={<Dashboard />} />
-              <Route path="/onboardings" element={<Onboardings />} />
-              <Route path="/onboardings/create" element={
+              <Route path="onboardings" element={<Onboardings />} />
+              <Route path="onboardings/create" element={
                 <div className="px-4 py-6 md:px-6 lg:px-8">
                   <h1 className="mb-6 text-3xl font-bold tracking-tight">Créer un Onboarding</h1>
                   <OnboardingForm onSubmit={(data) => console.log(data)} />
                 </div>
               } />
-              <Route path="/calendar" element={<Calendar />} />
-              <Route path="/training" element={<Training />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/sso-logs" element={<SSOLogs />} /> 
+              <Route path="calendar" element={<Calendar />} />
+              <Route path="training" element={<Training />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="sso-logs" element={<SSOLogs />} /> 
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>
