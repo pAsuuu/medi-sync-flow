@@ -1,6 +1,6 @@
 
 import { Link } from "react-router-dom";
-import { LayoutDashboard, Calendar, Users, GraduationCap, User, LogOut, Settings, Shield } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, GraduationCap, User, LogOut, Settings, MessageCircle } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -79,13 +79,12 @@ export function Sidebar() {
           <span className="hidden md:inline-block">Formations</span>
         </Link>
 
-        {/* Show the SSO logs link for everyone since we no longer have auth */}
         <Link
-          to="/sso-logs"
+          to="/chatbot"
           className="flex h-[60px] items-center gap-4 border-b px-6 text-foreground/60 transition-colors hover:text-foreground"
         >
-          <Shield className="h-5 w-5" />
-          <span className="hidden md:inline-block">Logs SSO</span>
+          <MessageCircle className="h-5 w-5" />
+          <span className="hidden md:inline-block">Chatbot</span>
         </Link>
       </nav>
     </aside>

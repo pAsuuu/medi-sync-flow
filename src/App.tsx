@@ -11,7 +11,7 @@ import Calendar from "@/pages/Calendar";
 import Training from "@/pages/Training";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
-import SSOLogs from "@/pages/SSOLogs";
+import Chatbot from "@/pages/Chatbot";
 import { OnboardingForm } from "@/components/OnboardingForm";
 
 const queryClient = new QueryClient();
@@ -50,7 +50,7 @@ const App = () => {
             <Route path="/calendar" element={<AppLayout><Calendar /></AppLayout>} />
             <Route path="/training" element={<AppLayout><Training /></AppLayout>} />
             <Route path="/profile" element={<AppLayout><Profile /></AppLayout>} />
-            <Route path="/sso-logs" element={<AppLayout><SSOLogs /></AppLayout>} />
+            <Route path="/chatbot" element={<AppLayout><Chatbot /></AppLayout>} />
             <Route path="*" element={<AppLayout><NotFound /></AppLayout>} />
           </Routes>
         </BrowserRouter>
