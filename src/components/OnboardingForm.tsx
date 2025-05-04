@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,19 +32,23 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { fetchCompanies, createOnboarding } from "@/services/onboardingService";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { fr } from "date-fns/locale";
 
 // Schema for onboarding form
 const formSchema = z.object({
-  clientName: z.string().min(2, "Client name is required"),
-  itrCompany: z.string().min(2, "ITR company is required"),
-  contactEmail: z.string().email("Invalid email address"),
-  contactPhone: z.string().min(10, "Valid phone number is required"),
+  clientName: z.string().min(2, "Le nom du client est requis"),
+  itrCompany: z.string().min(1, "L'entreprise ITR est requise"),
+  contactEmail: z.string().email("Adresse email invalide"),
+  contactPhone: z.string().min(10, "Un numéro de téléphone valide est requis"),
   trainer: z.string().optional(),
-  bdcDate: z.date({ required_error: "BDC date is required" }),
-  products: z.array(z.string()).min(1, "At least one product is required"),
-  numDoctors: z.number().min(0, "Number cannot be negative"),
-  numParamedical: z.number().min(0, "Number cannot be negative"),
-  numSecretaries: z.number().min(0, "Number cannot be negative"),
+  bdcDate: z.date({ required_error: "La date BDC est requise" }),
+  products: z.array(z.string()).min(1, "Au moins un produit est requis"),
+  numDoctors: z.number().min(0, "Le nombre ne peut pas être négatif"),
+  numParamedical: z.number().min(0, "Le nombre ne peut pas être négatif"),
+  numSecretaries: z.number().min(0, "Le nombre ne peut pas être négatif"),
   isMsp: z.boolean().default(false),
   obFeesActivated: z.boolean().default(true),
   preferredDate: z.date().optional(),
@@ -76,15 +80,12 @@ export function OnboardingForm({ onSubmit }: OnboardingFormProps) {
     },
   });
 
-  // Sample ITR companies and products (would come from API in a real app)
-  const itrCompanies = [
-    "MediComputers",
-    "HealthIT Solutions",
-    "DocTech Systems",
-    "MedicalSoft",
-    "HealthTech Innovations",
-  ];
+  const [itrCompanies, setItrCompanies] = useState<{ id: string; name: string }[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
+  // Sample products (would come from API in a real app)
   const availableProducts = [
     "WEDA",
     "Hellodoc",
@@ -94,10 +95,33 @@ export function OnboardingForm({ onSubmit }: OnboardingFormProps) {
     "PatientFlow",
   ];
 
+  useEffect(() => {
+    const loadCompanies = async () => {
+      const companies = await fetchCompanies();
+      setItrCompanies(companies);
+    };
+    
+    loadCompanies();
+  }, []);
+
+  const handleFormSubmit = async (data: FormValues) => {
+    setIsSubmitting(true);
+    try {
+      const success = await createOnboarding(data);
+      if (success) {
+        setTimeout(() => {
+          navigate("/onboardings");
+        }, 1000);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit(handleFormSubmit)}
         className="space-y-8 rounded-lg border p-6"
       >
         <div className="grid gap-6 md:grid-cols-2">
@@ -132,8 +156,8 @@ export function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                   </FormControl>
                   <SelectContent>
                     {itrCompanies.map((company) => (
-                      <SelectItem key={company} value={company}>
-                        {company}
+                      <SelectItem key={company.id} value={company.id}>
+                        {company.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -212,7 +236,7 @@ export function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                       )}
                     >
                       {field.value ? (
-                        format(field.value, "PPP")
+                        format(field.value, "PPP", { locale: fr })
                       ) : (
                         <span>Sélectionnez une date</span>
                       )}
@@ -226,6 +250,7 @@ export function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                     selected={field.value}
                     onSelect={field.onChange}
                     initialFocus
+                    locale={fr}
                   />
                 </PopoverContent>
               </Popover>
@@ -268,9 +293,9 @@ export function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                 min="0"
                 placeholder="Qté"
                 onChange={(e) => {
-                  // In a real app, you'd track quantities separately
+                  // Dans une vraie app, vous stockeriez ces quantités séparément
                   console.log(
-                    `Quantity for ${product}: ${e.target.value}`
+                    `Quantité pour ${product}: ${e.target.value}`
                   );
                 }}
               />
@@ -406,7 +431,7 @@ export function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                       )}
                     >
                       {field.value ? (
-                        format(field.value, "PPP")
+                        format(field.value, "PPP", { locale: fr })
                       ) : (
                         <span>Sélectionnez une date (optionnel)</span>
                       )}
@@ -420,6 +445,7 @@ export function OnboardingForm({ onSubmit }: OnboardingFormProps) {
                     selected={field.value}
                     onSelect={field.onChange}
                     initialFocus
+                    locale={fr}
                   />
                 </PopoverContent>
               </Popover>
@@ -449,8 +475,8 @@ export function OnboardingForm({ onSubmit }: OnboardingFormProps) {
           )}
         />
 
-        <Button type="submit" className="w-full">
-          Créer l'onboarding
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? "Création en cours..." : "Créer l'onboarding"}
         </Button>
       </form>
     </Form>

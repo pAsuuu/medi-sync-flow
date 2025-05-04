@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { OnboardingCard, OnboardingData } from '@/components/OnboardingCard';
@@ -11,74 +11,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-// Sample data - in a real app, this would come from an API
-const mockOnboardings: OnboardingData[] = [
-  {
-    id: 'OB-2023-001',
-    clientName: 'Cabinet Dr. Martin',
-    itrCompany: 'MediComputers',
-    products: ['WEDA', 'PatientFlow'],
-    createdDate: '2023-12-10',
-    scheduledDate: '2023-12-20',
-    status: 'scheduled',
-    contactPerson: 'Dr. Martin',
-    assignedTo: 'Jean Dupont',
-  },
-  {
-    id: 'OB-2023-002',
-    clientName: 'Centre Medical Dubois',
-    itrCompany: 'HealthIT Solutions',
-    products: ['MediSoft'],
-    createdDate: '2023-12-12',
-    status: 'pending',
-    contactPerson: 'Marie Dubois',
-  },
-  {
-    id: 'OB-2023-003',
-    clientName: 'Cabinet Dentaire Lefevre',
-    itrCompany: 'DocTech Systems',
-    products: ['DocManager', 'PatientFlow'],
-    createdDate: '2023-12-05',
-    scheduledDate: '2023-12-15',
-    status: 'inprogress',
-    contactPerson: 'Dr. Lefevre',
-    assignedTo: 'Sophie Moreau',
-  },
-  {
-    id: 'OB-2023-004',
-    clientName: 'Clinique Saint-Pierre',
-    itrCompany: 'MedicalSoft',
-    products: ['WEDA', 'MediSoft'],
-    createdDate: '2023-12-01',
-    scheduledDate: '2023-12-18',
-    status: 'completed',
-    contactPerson: 'Dr. Petit',
-    assignedTo: 'Lucas Bernard',
-  },
-  {
-    id: 'OB-2023-005',
-    clientName: 'Cabinet Dr. Rousseau',
-    itrCompany: 'HealthTech Innovations',
-    products: ['Hellodoc'],
-    createdDate: '2023-12-08',
-    status: 'rejected',
-    contactPerson: 'Dr. Rousseau',
-  },
-  {
-    id: 'OB-2023-006',
-    clientName: 'Centre Médical des Lilas',
-    itrCompany: 'MediComputers',
-    products: ['PatientFlow', 'MedicalOne'],
-    createdDate: '2023-12-03',
-    scheduledDate: '2023-12-22',
-    status: 'scheduled',
-    contactPerson: 'Dr. Lambert',
-    assignedTo: 'Emma Martin',
-  },
-];
+import { fetchOnboardings } from '@/services/onboardingService';
 
 export default function Onboardings() {
   const navigate = useNavigate();
@@ -86,9 +21,27 @@ export default function Onboardings() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [companyFilter, setCompanyFilter] = useState<string>('all');
+  const [onboardings, setOnboardings] = useState<OnboardingData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadOnboardings = async () => {
+      setLoading(true);
+      try {
+        const data = await fetchOnboardings();
+        setOnboardings(data);
+      } catch (error) {
+        console.error("Erreur lors du chargement des onboardings", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOnboardings();
+  }, []);
 
   // Apply filters
-  const filteredOnboardings = mockOnboardings.filter((onboarding) => {
+  const filteredOnboardings = onboardings.filter((onboarding) => {
     // Search filter
     const matchesSearch =
       searchQuery === '' ||
@@ -113,7 +66,7 @@ export default function Onboardings() {
   };
 
   // Get unique ITR companies for filter dropdown
-  const uniqueCompanies = Array.from(new Set(mockOnboardings.map((ob) => ob.itrCompany)));
+  const uniqueCompanies = Array.from(new Set(onboardings.map((ob) => ob.itrCompany)));
 
   return (
     <div className="px-4 py-6 md:px-6 lg:px-8">
@@ -175,7 +128,12 @@ export default function Onboardings() {
         </div>
       </div>
 
-      {filteredOnboardings.length === 0 ? (
+      {loading ? (
+        <div className="mt-8 flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="mt-2 text-sm text-muted-foreground">Chargement des onboardings...</p>
+        </div>
+      ) : filteredOnboardings.length === 0 ? (
         <div className="mt-8 flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
           <div className="text-center">
             <p className="text-sm text-muted-foreground">
