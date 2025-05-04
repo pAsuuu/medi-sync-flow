@@ -118,3 +118,39 @@ export async function fetchCompanies() {
     return [];
   }
 }
+
+export async function fetchSSOLogs() {
+  try {
+    const { data, error } = await supabase
+      .from('sso_logs')
+      .select(`
+        *,
+        itr_companies (
+          name
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return data.map(log => ({
+      id: log.id,
+      eventType: log.event_type,
+      userAgent: log.user_agent || 'Inconnu',
+      ipAddress: log.ip_address || 'Inconnu',
+      companyName: log.itr_companies?.name || 'Non défini',
+      timestamp: new Date(log.created_at).toLocaleString('fr-FR'),
+      metadata: log.metadata
+    }));
+  } catch (error) {
+    console.error("Erreur lors de la récupération des logs SSO:", error);
+    toast({
+      title: "Erreur",
+      description: "Une erreur est survenue lors de la récupération des logs SSO.",
+      variant: "destructive"
+    });
+    return [];
+  }
+}

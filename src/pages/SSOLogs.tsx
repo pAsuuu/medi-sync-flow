@@ -1,208 +1,120 @@
 
-import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from '@/integrations/supabase/client';
-import { Loader2 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Search, Loader2 } from 'lucide-react';
+import { fetchSSOLogs } from '@/services/onboardingService';
+
+interface SSOMLog {
+  id: string;
+  eventType: string;
+  userAgent: string;
+  ipAddress: string;
+  companyName: string;
+  timestamp: string;
+  metadata: any;
+}
 
 export default function SSOLogs() {
-  const [selectedCompany, setSelectedCompany] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [logs, setLogs] = useState<SSOMLog[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const { data: companies, isLoading: loadingCompanies } = useQuery({
-    queryKey: ['itr-companies'],
-    queryFn: async () => {
+  useEffect(() => {
+    const loadLogs = async () => {
+      setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('itr_companies')
-          .select('*')
-          .order('name');
-        
-        if (error) {
-          throw error;
-        }
-        
-        return data || [];
+        const data = await fetchSSOLogs();
+        setLogs(data);
       } catch (error) {
-        console.error("Erreur lors de la récupération des entreprises:", error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de récupérer la liste des entreprises",
-          variant: "destructive"
-        });
-        return [];
+        console.error("Erreur lors du chargement des logs SSO", error);
+      } finally {
+        setLoading(false);
       }
-    }
-  });
+    };
 
-  const { data: logs, isLoading: loadingLogs } = useQuery({
-    queryKey: ['sso-logs', selectedCompany],
-    queryFn: async () => {
-      try {
-        let query = supabase
-          .from('sso_logs')
-          .select(`
-            id,
-            created_at,
-            event_type,
-            ip_address,
-            user_agent,
-            itr_companies (
-              name
-            ),
-            user_id,
-            metadata
-          `)
-          .order('created_at', { ascending: false });
+    loadLogs();
+  }, []);
 
-        if (selectedCompany !== 'all') {
-          query = query.eq('itr_company_id', selectedCompany);
-        }
-
-        const { data, error } = await query;
-        
-        if (error) throw error;
-        
-        // Get user profile information in a separate query
-        if (data && data.length > 0) {
-          const userIds = data.map(log => log.user_id).filter(id => id);
-          
-          let profilesMap = {};
-          
-          if (userIds.length > 0) {
-            const { data: profilesData, error: profilesError } = await supabase
-              .from('profiles')
-              .select('id, first_name, last_name, email')
-              .in('id', userIds);
-              
-            if (!profilesError && profilesData) {
-              // Create a map of profiles by ID for quick lookup
-              profilesMap = profilesData.reduce((acc, profile) => {
-                acc[profile.id] = profile;
-                return acc;
-              }, {});
-            } else if (profilesError) {
-              console.error("Erreur lors du chargement des profils:", profilesError);
-            }
-          }
-          
-          // Merge profile data with logs
-          return data.map(log => ({
-            ...log,
-            profile: log.user_id ? profilesMap[log.user_id] : null
-          }));
-        }
-        
-        return data.map(log => ({ ...log, profile: null }));
-      } catch (error) {
-        console.error("Erreur lors de la récupération des logs SSO:", error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de récupérer les logs SSO",
-          variant: "destructive"
-        });
-        return [];
-      }
-    }
-  });
-
-  const isLoading = loadingCompanies || loadingLogs;
+  const filteredLogs = logs.filter((log) => 
+    searchQuery === '' ||
+    log.eventType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    log.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    log.ipAddress.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="px-4 py-6 md:px-6 lg:px-8 space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div className="px-4 py-6 md:px-6 lg:px-8">
+      <div className="flex flex-col items-start justify-between space-y-2 sm:flex-row sm:items-center sm:space-y-0">
         <h1 className="text-3xl font-bold tracking-tight">Logs SSO</h1>
-        <Select value={selectedCompany} onValueChange={setSelectedCompany} disabled={isLoading}>
-          <SelectTrigger className="w-[240px]">
-            <SelectValue placeholder="Filtrer par entreprise" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Toutes les entreprises</SelectItem>
-            {companies?.map((company) => (
-              <SelectItem key={company.id} value={company.id}>
-                {company.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Historique des connexions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : logs && logs.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Utilisateur</TableHead>
-                  <TableHead>Entreprise</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>IP</TableHead>
-                  <TableHead>Navigateur</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {logs.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell>
-                      {format(new Date(log.created_at), 'Pp', { locale: fr })}
-                    </TableCell>
-                    <TableCell>
-                      {log.profile ? 
-                        <>
-                          {log.profile.first_name} {log.profile.last_name}
-                          <br />
-                          <span className="text-sm text-muted-foreground">
-                            {log.profile.email}
-                          </span>
-                        </> 
-                        : 
-                        <span className="text-muted-foreground">
-                          Utilisateur inconnu
-                        </span>
-                      }
-                    </TableCell>
-                    <TableCell>{log.itr_companies?.name || "—"}</TableCell>
-                    <TableCell>{log.event_type}</TableCell>
-                    <TableCell>{log.ip_address || "—"}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {log.user_agent || "—"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-8">
-              <p className="text-muted-foreground">Aucun log SSO trouvé</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <div className="mt-6 flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-x-2 sm:space-y-0">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Rechercher dans les logs..."
+            className="pl-8"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="mt-8 flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="mt-2 text-sm text-muted-foreground">Chargement des logs...</p>
+        </div>
+      ) : filteredLogs.length === 0 ? (
+        <div className="mt-8 flex flex-col items-center justify-center rounded-lg border border-dashed py-12">
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              {searchQuery ? 
+                "Aucun log ne correspond à votre recherche" : 
+                "Aucun log SSO disponible"
+              }
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Journaux d'activité SSO</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full table-auto">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="px-4 py-2 text-left text-sm font-medium">Événement</th>
+                      <th className="px-4 py-2 text-left text-sm font-medium">Entreprise</th>
+                      <th className="px-4 py-2 text-left text-sm font-medium">IP</th>
+                      <th className="px-4 py-2 text-left text-sm font-medium">User Agent</th>
+                      <th className="px-4 py-2 text-left text-sm font-medium">Date/Heure</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredLogs.map((log) => (
+                      <tr key={log.id} className="border-b">
+                        <td className="px-4 py-2 text-sm">{log.eventType}</td>
+                        <td className="px-4 py-2 text-sm">{log.companyName}</td>
+                        <td className="px-4 py-2 text-sm font-mono">{log.ipAddress}</td>
+                        <td className="max-w-xs truncate px-4 py-2 text-xs">
+                          {log.userAgent}
+                        </td>
+                        <td className="px-4 py-2 text-sm">{log.timestamp}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

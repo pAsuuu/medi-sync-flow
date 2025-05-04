@@ -1,10 +1,7 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { StatusBadge } from "@/components/StatusBadge";
-import { UserAvatar } from "@/components/UserAvatar";
-import { Calendar, Building, Users } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatusBadge } from '@/components/StatusBadge';
 
 export interface OnboardingData {
   id: string;
@@ -13,73 +10,69 @@ export interface OnboardingData {
   products: string[];
   createdDate: string;
   scheduledDate?: string;
-  status: 'pending' | 'inprogress' | 'scheduled' | 'completed' | 'rejected';
-  contactPerson?: string;
+  status: string; // Changed from strict union type to string to accommodate all possible values
+  contactPerson: string;
   assignedTo?: string;
 }
 
 interface OnboardingCardProps {
   onboarding: OnboardingData;
-  onClick?: () => void;
-  className?: string;
+  onClick: () => void;
 }
 
-export function OnboardingCard({ onboarding, onClick, className }: OnboardingCardProps) {
+export const OnboardingCard: React.FC<OnboardingCardProps> = ({ onboarding, onClick }) => {
   return (
-    <Card 
-      className={cn("cursor-pointer transition-all hover:shadow-md", className)}
-      onClick={onClick}
-    >
+    <Card className="cursor-pointer transition-shadow hover:shadow-md" onClick={onClick}>
       <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle>{onboarding.clientName}</CardTitle>
-          <StatusBadge status={onboarding.status} />
-        </div>
-        <CardDescription className="flex items-center gap-1">
-          <Building size={14} />
-          {onboarding.itrCompany}
-        </CardDescription>
+        <CardTitle className="text-lg font-medium">{onboarding.clientName}</CardTitle>
+        <p className="text-sm text-muted-foreground">{onboarding.itrCompany}</p>
       </CardHeader>
-      <CardContent className="pb-2">
-        <div className="grid gap-2">
-          <div className="flex items-center gap-1 text-sm">
-            <Calendar size={14} className="text-muted-foreground" />
-            <span>Created: {onboarding.createdDate}</span>
+      
+      <CardContent className="py-2">
+        <div className="flex flex-col space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium">Date de création</span>
+            <span className="text-xs">{onboarding.createdDate}</span>
           </div>
+          
           {onboarding.scheduledDate && (
-            <div className="flex items-center gap-1 text-sm">
-              <Calendar size={14} className="text-muted-foreground" />
-              <span>Scheduled: {onboarding.scheduledDate}</span>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium">Date planifiée</span>
+              <span className="text-xs">{onboarding.scheduledDate}</span>
             </div>
           )}
-          <div className="mt-2">
-            <div className="text-xs font-medium text-muted-foreground">Products</div>
-            <div className="mt-1 flex flex-wrap gap-1">
-              {onboarding.products.map((product, idx) => (
-                <span
-                  key={idx}
-                  className="inline-flex rounded-full bg-medisync-50 px-2 py-0.5 text-xs font-medium text-medisync-700"
-                >
-                  {product}
-                </span>
-              ))}
-            </div>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium">Contact</span>
+            <span className="text-xs">{onboarding.contactPerson}</span>
+          </div>
+          
+          <div className="flex flex-wrap gap-1 pt-2">
+            {onboarding.products.slice(0, 3).map((product) => (
+              <span 
+                key={product} 
+                className="whitespace-nowrap rounded-full bg-sky-100 px-2 py-0.5 text-xs text-sky-700"
+              >
+                {product}
+              </span>
+            ))}
+            {onboarding.products.length > 3 && (
+              <span className="whitespace-nowrap rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
+                +{onboarding.products.length - 3}
+              </span>
+            )}
           </div>
         </div>
       </CardContent>
-      <CardFooter className="pt-2">
-        <div className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Users size={14} />
-            <span>ID: {onboarding.id}</span>
-          </div>
-          {onboarding.assignedTo && (
-            <div className="flex items-center">
-              <UserAvatar name={onboarding.assignedTo} size="sm" />
-            </div>
-          )}
-        </div>
+      
+      <CardFooter className="flex items-center justify-between pt-2">
+        <StatusBadge status={onboarding.status as any} />
+        {onboarding.assignedTo && (
+          <span className="text-xs text-muted-foreground">
+            Assigné à {onboarding.assignedTo}
+          </span>
+        )}
       </CardFooter>
     </Card>
   );
-}
+};

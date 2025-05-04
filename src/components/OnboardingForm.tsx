@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -32,7 +31,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { fetchCompanies, createOnboarding } from "@/services/onboardingService";
+import { fetchCompanies, createOnboarding, OnboardingFormData } from "@/services/onboardingService";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { fr } from "date-fns/locale";
@@ -58,7 +57,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 interface OnboardingFormProps {
-  onSubmit: (data: FormValues) => void;
+  onSubmit: (data: OnboardingFormData) => void;
 }
 
 export function OnboardingForm({ onSubmit }: OnboardingFormProps) {
@@ -105,9 +104,27 @@ export function OnboardingForm({ onSubmit }: OnboardingFormProps) {
   }, []);
 
   const handleFormSubmit = async (data: FormValues) => {
+    // Convert the form values to OnboardingFormData
+    const onboardingData: OnboardingFormData = {
+      clientName: data.clientName,
+      itrCompany: data.itrCompany,
+      contactEmail: data.contactEmail,
+      contactPhone: data.contactPhone,
+      trainer: data.trainer,
+      bdcDate: data.bdcDate,
+      products: data.products,
+      numDoctors: data.numDoctors,
+      numParamedical: data.numParamedical,
+      numSecretaries: data.numSecretaries,
+      isMsp: data.isMsp,
+      obFeesActivated: data.obFeesActivated,
+      preferredDate: data.preferredDate,
+      comments: data.comments
+    };
+
     setIsSubmitting(true);
     try {
-      const success = await createOnboarding(data);
+      const success = await createOnboarding(onboardingData);
       if (success) {
         setTimeout(() => {
           navigate("/onboardings");
